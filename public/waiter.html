@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Официант — Ас-Алан</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .w-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  @media (min-width: 1000px) {
+    .w-grid { grid-template-columns: 360px 1fr; }
+  }
+  .active-table {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .active-table:last-child { border-bottom: none; }
+  .active-table__num {
+    font-family: var(--font-head);
+    font-size: 22px; font-weight: 700;
+    color: var(--emerald);
+  }
+  .active-table__meta { font-size: 13px; color: var(--muted); }
+  .active-table__sum { font-weight: 700; color: var(--orange); }
+
+  .header-check {
+    position: relative;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--orange);
+    color: var(--white);
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(242,140,0,.35);
+    transition: transform .1s, background .15s;
+    flex-shrink: 0;
+  }
+  .header-check:hover { background: var(--orange-dark); }
+  .header-check:active { transform: scale(.94); }
+  .header-check:disabled { opacity: .5; cursor: not-allowed; }
+  .header-check .badge-count {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--emerald);
+    color: var(--cream);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    padding: 1px 6px;
+    min-width: 18px; text-align: center;
+    border: 2px solid var(--cream);
+  }
+
+  .search-fixed {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 720px;
+    z-index: 30;
+    display: flex; gap: 8px;
+    padding: 8px;
+    background: var(--white);
+    border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(46,41,16,.18);
+    border: 2px solid var(--border);
+  }
+  .search-fixed input[type="text"] {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 999px;
+  }
+  .search-fixed input[type="text"]:focus {
+    outline: none;
+    background: var(--cream-soft);
+  }
+  .search-fixed__clear {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    padding: 0 10px;
+    cursor: pointer;
+    border-radius: 999px;
+  }
+  .search-fixed__clear:hover { color: var(--danger); }
+
+  #dishList {
+    padding-top: 8px;
+    padding-bottom: 96px;
+  }
+
+  .dish-select {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .dish-select:last-child { border-bottom: none; }
+  .dish-select__info { flex: 1; min-width: 0; }
+  .dish-select__name { font-weight: 600; }
+  .dish-select__price { color: var(--orange); font-weight: 700; font-size: 13px; }
+  .cat-header {
+    font-family: var(--font-head);
+    font-size: 17px; font-weight: 700;
+    color: var(--emerald);
+    margin-top: 16px; margin-bottom: 4px;
+  }
+  .cat-header:first-child { margin-top: 0; }
+  .hidden-by-search { display: none !important; }
+  .no-results {
+    text-align: center; padding: 40px 20px;
+    color: var(--muted); font-style: italic;
+  }
+
+  /* ===== Модалка списка заказов стола ===== */
+  .orders-list { display: flex; flex-direction: column; gap: 12px; }
+  .order-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    background: var(--cream-soft);
+  }
+  .order-card__head {
+    display: flex; justify-content: space-between;
+    align-items: baseline; margin-bottom: 6px;
+  }
+  .order-card__num {
+    font-family: var(--font-head);
+    font-size: 16px; font-weight: 700;
+    color: var(--emerald);
+  }
+  .order-card__status {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .order-card__note {
+    background: #FFE9C2; color: #7A4A00;
+    padding: 4px 8px; border-radius: 6px;
+    font-size: 12px; font-style: italic;
+    margin: 4px 0;
+  }
+  .order-card__items {
+    list-style: none; padding: 0; margin: 4px 0;
+    font-size: 14px;
+  }
+  .order-card__items li {
+    display: flex; justify-content: space-between;
+    padding: 2px 0;
+  }
+  .order-card__actions {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .order-card__actions .btn { padding: 6px 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-card__logo">Ас-Алан<span>.</span></div>
+    <div class="login-card__role">Официант</div>
+    <input type="password" class="login-card__pin" id="pin" inputmode="numeric" maxlength="4" placeholder="····">
+    <div class="login-card__error" id="loginError"></div>
+    <button class="btn btn--primary btn--block" id="loginBtn">Войти</button>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div class="app-logo">Ас-Алан<span>.</span><small>Официант</small></div>
+      <div class="row" style="gap:12px; align-items:center">
+        <button class="header-check" id="checkBtn" title="Отправить заказ" style="display:none">
+          ✓<span class="badge-count hide" id="cartBadge">0</span>
+        </button>
+        <a href="#" class="btn btn--ghost" onclick="logout(event)">Выйти</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="w-grid">
+      <div>
+        <div class="card">
+          <h2 class="card__title">Активные столы</h2>
+          <div id="activeList" class="mt-2"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2 class="card__title">Новый заказ</h2>
+
+          <div class="row mt-2" style="margin-bottom:12px">
+            <label style="flex:1">
+              <span class="muted" style="font-size:13px">Стол</span>
+              <select id="table" class="mt-2"></select>
+            </label>
+          </div>
+
+          <div id="dishList"></div>
+          <div id="noResults" class="no-results hide">Ничего не найдено</div>
+
+          <textarea id="note" class="mt-4" rows="2" placeholder="Примечание к заказу"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка заказов стола -->
+<div class="modal-bg hide" id="ordersModal">
+  <div class="modal">
+    <button class="modal__close" id="ordersClose">×</button>
+    <h3 id="ordersTitle">Заказы стола</h3>
+    <div id="ordersList" class="orders-list mt-2"></div>
+  </div>
+</div>
+
+<div class="search-fixed hide" id="searchWrap">
+  <input type="text" id="search" placeholder="Поиск блюда или категории...">
+  <button class="search-fixed__clear" id="searchClear" title="Очистить">×</button>
+</div>
+
+<script>
+const cart = {};
+const PIN_KEY = 'waiter_pin';
+let allDishes = [];
+let allCategories = [];
+let currentTableNumber = null;
+
+function logout(e) {
+  e.preventDefault();
+  localStorage.removeItem(PIN_KEY);
+  location.reload();
+}
+
+async function doLogin() {
+  const pin = document.getElementById('pin').value;
+  const err = document.getElementById('loginError');
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({role:'waiter', pin})
+    });
+    if (r.ok) { localStorage.setItem(PIN_KEY, pin); start(); }
+    else err.textContent = 'Неверный PIN';
+  } catch { err.textContent = 'Ошибка сети'; }
+}
+
+async function start() {
+  document.getElementById('loginScreen').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+
+  document.getElementById('checkBtn').style.display = 'flex';
+  document.getElementById('searchWrap').classList.remove('hide');
+
+  const [tables, cats, dishes] = await Promise.all([
+    fetch('/api/tables').then(r=>r.json()),
+    fetch('/api/categories').then(r=>r.json()),
+    fetch('/api/dishes').then(r=>r.json()),
+  ]);
+  allDishes = dishes;
+  allCategories = cats;
+
+  document.getElementById('table').innerHTML =
+    tables.map(t => `<option value="${t.number}">Стол ${t.number}</option>`).join('');
+
+  renderDishes();
+
+  document.getElementById('search').addEventListener('input', applySearch);
+  document.getElementById('searchClear').onclick = () => {
+    const inp = document.getElementById('search');
+    inp.value = '';
+    applySearch();
+    inp.focus();
+  };
+  document.getElementById('checkBtn').onclick = sendOrder;
+  document.getElementById('ordersClose').onclick = () => {
+    document.getElementById('ordersModal').classList.add('hide');
+  };
+  document.getElementById('ordersModal').onclick = (e) => {
+    if (e.target.id === 'ordersModal') document.getElementById('ordersModal').classList.add('hide');
+  };
+
+  await refreshActive();
+  connectWs();
+}
+
+function renderDishes() {
+  const wrap = document.getElementById('dishList');
+  wrap.innerHTML = '';
+  for (const c of allCategories) {
+    const items = allDishes.filter(d => d.category_id === c.id);
+    if (!items.length) continue;
+    const section = document.createElement('div');
+    section.className = 'cat-section';
+    section.dataset.cat = c.name.toLowerCase();
+    const h = document.createElement('div');
+    h.className = 'cat-header';
+    h.textContent = c.name;
+    section.appendChild(h);
+    for (const d of items) {
+      const row = document.createElement('div');
+      row.className = 'dish-select';
+      row.dataset.name = d.name.toLowerCase();
+      row.innerHTML = `
+        <div class="dish-select__info">
+          <div class="dish-select__name">${d.name}</div>
+          <div class="dish-select__price">${d.price} ₽</div>
+        </div>
+        <div class="qty">
+          <button onclick="cartAdd(${d.id}, -1)">−</button>
+          <span id="q-${d.id}">${cart[d.id] || 0}</span>
+          <button onclick="cartAdd(${d.id}, 1)">+</button>
+        </div>`;
+      section.appendChild(row);
+    }
+    wrap.appendChild(section);
+  }
+  updateBadge();
+}
+
+function applySearch() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const sections = document.querySelectorAll('.cat-section');
+  let anyVisible = false;
+  for (const s of sections) {
+    let catHasVisible = false;
+    const rows = s.querySelectorAll('.dish-select');
+    for (const r of rows) {
+      const match = !q || r.dataset.name.includes(q) || s.dataset.cat.includes(q);
+      r.classList.toggle('hidden-by-search', !match);
+      if (match) catHasVisible = true;
+    }
+    s.classList.toggle('hidden-by-search', !catHasVisible);
+    if (catHasVisible) anyVisible = true;
+  }
+  document.getElementById('noResults').classList.toggle('hide', anyVisible || !q);
+}
+
+function cartAdd(id, delta) {
+  cart[id] = (cart[id] || 0) + delta;
+  if (cart[id] <= 0) delete cart[id];
+  const el = document.getElementById('q-' + id);
+  if (el) el.textContent = cart[id] || 0;
+  updateBadge();
+}
+
+function updateBadge() {
+  const n = Object.values(cart).reduce((a, b) => a + b, 0);
+  const b = document.getElementById('cartBadge');
+  if (n) { b.textContent = n; b.classList.remove('hide'); }
+  else b.classList.add('hide');
+}
+
+async function sendOrder() {
+  const items = Object.entries(cart).map(([id, qty]) => ({ dishId: Number(id), qty }));
+  if (!items.length) { alert('Корзина пуста'); return; }
+  const btn = document.getElementById('checkBtn');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/orders', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        tableNumber: Number(document.getElementById('table').value),
+        source: 'waiter',
+        note: document.getElementById('note').value,
+        items
+      })
+    });
+    const data = await r.json();
+    if (data.orderId) {
+      alert('Заказ №' + (data.orderNo ?? data.orderId) + ' отправлен');
+      for (const k in cart) {
+        const el = document.getElementById('q-' + k);
+        if (el) el.textContent = 0;
+        delete cart[k];
+      }
+      document.getElementById('note').value = '';
+      updateBadge();
+    } else {
+      alert('Ошибка: ' + data.error);
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function refreshActive() {
+  const list = await fetch('/api/tables/active').then(r=>r.json());
+  const el = document.getElementById('activeList');
+  if (!list.length) {
+    el.innerHTML = '<p class="muted">Все столы свободны</p>';
+    return;
+  }
+  el.innerHTML = '';
+  for (const t of list) {
+    const row = document.createElement('div');
+    row.className = 'active-table';
+    row.innerHTML = `
+      <div>
+        <div class="active-table__num">Стол ${t.table_number}</div>
+        <div class="active-table__meta">${t.orders_count} заказ(ов) · <span class="active-table__sum">${t.total} ₽</span></div>
+      </div>
+      <div class="row" style="gap:6px">
+        <button class="btn btn--outline" onclick="showOrders(${t.table_number})">Заказы</button>
+        <button class="btn btn--danger" onclick="closeTable(${t.table_number})">Закрыть</button>
+      </div>`;
+    el.appendChild(row);
+  }
+}
+
+async function showOrders(tableNumber) {
+  currentTableNumber = tableNumber;
+  const all = await fetch('/api/orders?shift=current').then(r=>r.json());
+  const mine = all.filter(o => o.table_number === tableNumber && !['closed','cancelled'].includes(o.status));
+
+  document.getElementById('ordersTitle').textContent = 'Заказы стола ' + tableNumber;
+  const wrap = document.getElementById('ordersList');
+
+  if (!mine.length) {
+    wrap.innerHTML = '<p class="muted">Нет активных заказов</p>';
+    document.getElementById('ordersModal').classList.remove('hide');
+    return;
+  }
+
+  wrap.innerHTML = '';
+  for (const o of mine) {
+    const card = document.createElement('div');
+    card.className = 'order-card';
+    card.innerHTML = `
+      <div class="order-card__head">
+        <span class="order-card__num">№${o.order_no ?? o.id}</span>
+        <span class="order-card__status">${o.status}</span>
+      </div>
+      ${o.note ? `<div class="order-card__note">${o.note}</div>` : ''}
+      <ul class="order-card__items">
+        ${o.items.map(i => `<li><span>${i.name}</span><span>× ${i.qty}</span></li>`).join('')}
+      </ul>
+      <div class="order-card__actions">
+        <button class="btn btn--danger" onclick="cancelOrder(${o.id}, ${o.order_no ?? o.id})">Отменить заказ</button>
+      </div>`;
+    wrap.appendChild(card);
+  }
+  document.getElementById('ordersModal').classList.remove('hide');
+}
+
+async function cancelOrder(id, no) {
+  if (!confirm('Отменить заказ №' + no + '?\nОн не попадёт в сумму смены.')) return;
+  await fetch(`/api/orders/${id}/status`, {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({status:'cancelled'})
+  });
+  if (currentTableNumber) {
+    await showOrders(currentTableNumber);
+  }
+  refreshActive();
+}
+
+async function closeTable(tableNumber) {
+  if (!confirm('Закрыть счёт по всем заказам стола ' + tableNumber + '?\nЗаказы уйдут в закрытые и освободят стол.')) return;
+  const all = await fetch('/api/orders?shift=current').then(r=>r.json());
+  const mine = all.filter(o => o.table_number === tableNumber && !['closed','cancelled'].includes(o.status));
+  for (const o of mine) {
+    await fetch(`/api/orders/${o.id}/status`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({status:'closed'})
+    });
+  }
+  refreshActive();
+}
+
+function connectWs() {
+  const ws = new WebSocket(`ws://${location.host}`);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'order_new' || msg.type === 'order_updated') refreshActive();
+    else if (msg.type === 'shift_closed') {
+      refreshActive();
+      alert('Смена закрыта администратором. Заказы начнутся с №1.');
+    }
+  };
+  ws.onclose = () => setTimeout(connectWs, 2000);
+}
+
+document.getElementById('loginBtn').onclick = doLogin;
+document.getElementById('pin').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+
+const saved = localStorage.getItem(PIN_KEY);
+if (saved) {
+  fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({role:'waiter', pin:saved}) })
+    .then(r => r.ok ? start() : localStorage.removeItem(PIN_KEY));
+}
+</script>
+</body>
+</html>

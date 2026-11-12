@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Меню — Кафе Ас-Алан</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .menu { max-width: 760px; margin: 0 auto; padding: 40px 20px 120px; }
+  .menu__title {
+    font-family: var(--font-head);
+    font-size: clamp(32px, 6vw, 52px);
+    font-weight: 700; color: var(--emerald);
+    text-align: center; line-height: 1.1;
+    letter-spacing: -0.02em; margin-bottom: 8px;
+  }
+  .menu__subtitle {
+    text-align: center; color: var(--muted);
+    font-size: 15px; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 32px;
+  }
+  .menu__table-badge { text-align: center; margin-bottom: 36px; }
+  .menu__table-badge span {
+    background: var(--emerald); color: var(--cream);
+    padding: 6px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .category { margin-bottom: 40px; scroll-margin-top: 80px; }
+  .category__title {
+    font-family: var(--font-head);
+    font-size: clamp(20px, 3.5vw, 26px);
+    font-weight: 700; color: var(--emerald);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding-bottom: 10px; border-bottom: 3px solid var(--orange);
+    margin-bottom: 16px;
+  }
+  .dish {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 12px;
+    padding: 14px 0; border-bottom: 1px dashed var(--border);
+  }
+  .dish:last-child { border-bottom: none; }
+  .dish__info { flex: 1; min-width: 0; }
+  .dish__name { font-weight: 700; font-size: 16px; line-height: 1.35; }
+  .dish__desc { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .dish__price { font-weight: 700; color: var(--orange); white-space: nowrap; }
+  .dish__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  .nav a {
+    font-size: 13px; font-weight: 500; color: var(--muted);
+    padding: 6px 10px; border-radius: 999px;
+    transition: all .2s; white-space: nowrap;
+  }
+  .nav a:hover { background: var(--emerald); color: var(--cream); }
+  @media (max-width: 600px) {
+    .menu { padding: 24px 14px 120px; }
+    .menu__subtitle { margin-bottom: 24px; font-size: 13px; }
+    .dish__name { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header__inner">
+    <div class="app-logo">Ас-Алан<span>.</span><small>Кафе</small></div>
+    <nav class="nav" id="nav"></nav>
+  </div>
+</header>
+
+<main class="menu">
+  <h1 class="menu__title">Меню</h1>
+  <p class="menu__subtitle">Кафе Ас-Алан</p>
+  <div class="menu__table-badge" id="tableBadge"></div>
+
+  <div id="menuList"></div>
+
+  <div id="cartBar" class="cart-bar hide">
+    <div class="cart-bar__info">
+      <span id="cartCount">0</span> поз. на <span id="cartSum">0</span> ₽
+      <small>Готово к отправке</small>
+    </div>
+    <button class="cart-bar__btn" id="openCart">Оформить</button>
+  </div>
+</main>
+
+<div class="modal-bg hide" id="cartModal">
+  <div class="modal">
+    <button class="modal__close" id="closeModal">×</button>
+    <h3>Ваш заказ</h3>
+    <div id="cartList"></div>
+    <textarea id="orderNote" placeholder="Примечание к заказу (аллергии, пожелания)" class="mt-4" rows="3"></textarea>
+    <div class="row mt-4" style="justify-content:space-between; align-items:baseline">
+      <strong>Итого:</strong>
+      <strong style="color:var(--orange); font-size:20px" id="modalSum">0 ₽</strong>
+    </div>
+    <button class="btn btn--orange btn--block mt-4" id="sendOrder">Отправить на кухню</button>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const tableNumber = params.get('table');
+const cart = {};
+let dishesById = {};
+
+async function load() {
+  const [cats, dishes] = await Promise.all([
+    fetch('/api/categories').then(r=>r.json()),
+    fetch('/api/dishes').then(r=>r.json()),
+  ]);
+
+  dishes.forEach(d => { dishesById[d.id] = d; });
+
+  const nav = document.getElementById('nav');
+  const list = document.getElementById('menuList');
+  const badge = document.getElementById('tableBadge');
+
+  if (!tableNumber) {
+    badge.innerHTML = '<span style="background:var(--danger)">Стол не определён — отсканируйте QR со стола</span>';
+  } else {
+    badge.innerHTML = `<span>Стол №${tableNumber}</span>`;
+  }
+
+  nav.innerHTML = '';
+  list.innerHTML = '';
+
+  for (const c of cats) {
+    const items = dishes.filter(d => d.category_id === c.id);
+    if (!items.length) continue;
+
+    const slug = 'cat-' + c.id;
+    const navLink = document.createElement('a');
+    navLink.href = '#' + slug;
+    navLink.textContent = c.name;
+    nav.appendChild(navLink);
+
+    const section = document.createElement('section');
+    section.className = 'category';
+    section.id = slug;
+    section.innerHTML = `<h2 class="category__title">${c.name}</h2>`;
+    for (const d of items) {
+      const row = document.createElement('div');
+      row.className = 'dish';
+      row.innerHTML = `
+        <div class="dish__info">
+          <div class="dish__name">${d.name}</div>
+          ${d.description ? `<div class="dish__desc">${d.description}</div>` : ''}
+        </div>
+        <div class="dish__actions">
+          <span class="dish__price">${d.price} ₽</span>
+          <div class="qty">
+            <button data-minus="${d.id}">−</button>
+            <span id="q-${d.id}">0</span>
+            <button data-plus="${d.id}">+</button>
+          </div>
+        </div>`;
+      section.appendChild(row);
+    }
+    list.appendChild(section);
+  }
+
+  list.addEventListener('click', (e) => {
+    const plus = e.target.closest('[data-plus]');
+    const minus = e.target.closest('[data-minus]');
+    if (plus) addToCart(Number(plus.dataset.plus), 1);
+    if (minus) addToCart(Number(minus.dataset.minus), -1);
+  });
+
+  document.getElementById('openCart').onclick = openCart;
+  document.getElementById('closeModal').onclick = closeCart;
+  document.getElementById('sendOrder').onclick = sendOrder;
+  document.getElementById('cartModal').onclick = (e) => {
+    if (e.target.id === 'cartModal') closeCart();
+  };
+}
+
+function addToCart(id, delta) {
+  cart[id] = (cart[id] || 0) + delta;
+  if (cart[id] <= 0) delete cart[id];
+  const el = document.getElementById('q-' + id);
+  if (el) el.textContent = cart[id] || 0;
+  updateCartBar();
+}
+
+function cartTotals() {
+  let count = 0, sum = 0;
+  for (const [id, qty] of Object.entries(cart)) {
+    count += qty;
+    sum += dishesById[id].price * qty;
+  }
+  return { count, sum };
+}
+
+function updateCartBar() {
+  const { count, sum } = cartTotals();
+  const bar = document.getElementById('cartBar');
+  if (!count) { bar.classList.add('hide'); return; }
+  bar.classList.remove('hide');
+  document.getElementById('cartCount').textContent = count;
+  document.getElementById('cartSum').textContent = sum;
+}
+
+function openCart() {
+  const wrap = document.getElementById('cartList');
+  const { sum } = cartTotals();
+  wrap.innerHTML = '';
+  for (const [id, qty] of Object.entries(cart)) {
+    const d = dishesById[id];
+    const row = document.createElement('div');
+    row.className = 'dish-row';
+    row.innerHTML = `
+      <div>
+        <div class="dish-row__name">${d.name}</div>
+        <div class="dish-row__price">${d.price} ₽ × ${qty}</div>
+      </div>
+      <div class="qty">
+        <button data-modal-minus="${id}">−</button>
+        <span>${qty}</span>
+        <button data-modal-plus="${id}">+</button>
+      </div>`;
+    wrap.appendChild(row);
+  }
+  wrap.onclick = (e) => {
+    const plus = e.target.closest('[data-modal-plus]');
+    const minus = e.target.closest('[data-modal-minus]');
+    if (plus) { addToCart(Number(plus.dataset.modalPlus), 1); openCart(); }
+    if (minus) { addToCart(Number(minus.dataset.modalMinus), -1); openCart(); }
+  };
+  document.getElementById('modalSum').textContent = sum + ' ₽';
+  document.getElementById('cartModal').classList.remove('hide');
+}
+
+function closeCart() {
+  document.getElementById('cartModal').classList.add('hide');
+}
+
+async function sendOrder() {
+  if (!tableNumber) { alert('Стол не определён'); return; }
+  const items = Object.entries(cart).map(([id, qty]) => ({ dishId: Number(id), qty }));
+  if (!items.length) { alert('Корзина пуста'); return; }
+
+  const note = document.getElementById('orderNote').value;
+  const btn = document.getElementById('sendOrder');
+  btn.disabled = true; btn.textContent = 'Отправка...';
+
+  try {
+    const r = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tableNumber: Number(tableNumber), source: 'qr', note, items }),
+    });
+    const data = await r.json();
+    if (data.orderId) {
+      alert('Заказ №' + data.orderId + ' отправлен на кухню');
+      for (const id in cart) {
+        const q = document.getElementById('q-' + id);
+        if (q) q.textContent = 0;
+        delete cart[id];
+      }
+      document.getElementById('orderNote').value = '';
+      updateCartBar();
+      closeCart();
+    } else {
+      alert('Ошибка: ' + (data.error || 'неизвестно'));
+    }
+  } catch (e) {
+    alert('Ошибка сети: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Отправить на кухню';
+  }
+}
+
+load();
+</script>
+</body>
+</html>

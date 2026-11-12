@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Админ — Ас-Алан</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .admin-tabs {
+    display: flex; gap: 4px; margin-bottom: 24px;
+    background: var(--white); padding: 4px;
+    border-radius: var(--radius-sm); box-shadow: var(--shadow);
+    overflow-x: auto;
+  }
+  .admin-tabs button {
+    flex: 1; padding: 10px 16px;
+    border: none; background: transparent;
+    color: var(--muted); font-weight: 600;
+    border-radius: 8px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .admin-tabs button.active {
+    background: var(--emerald); color: var(--cream);
+  }
+  .form-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .form-row > * { flex: 1; min-width: 140px; }
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); font-weight: 600;
+    padding: 8px 6px; border-bottom: 2px solid var(--border);
+  }
+  .data-table td {
+    padding: 8px 6px; border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .data-table input[type="number"] { width: 90px; padding: 6px 10px; }
+  .data-table img { width: 60px; height: 60px; border-radius: 8px; }
+  .list-plain { list-style: none; padding: 0; }
+  .list-plain li {
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .list-plain li:last-child { border-bottom: none; }
+
+  /* Отчёты */
+  .report-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .stat-card__label {
+    font-size: 12px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .stat-card__value {
+    font-family: var(--font-head);
+    font-size: 34px; font-weight: 700;
+    color: var(--emerald); line-height: 1;
+  }
+  .stat-card__sub {
+    font-size: 13px; color: var(--muted); margin-top: 6px;
+  }
+  .stat-card--accent .stat-card__value { color: var(--orange); }
+  .close-shift-card {
+    background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-soft) 100%);
+    color: var(--cream);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+  .close-shift-card h3 {
+    font-family: var(--font-head);
+    font-size: 22px; margin-bottom: 8px;
+  }
+  .close-shift-card p { opacity: .85; margin-bottom: 16px; font-size: 14px; }
+  .close-shift-card .btn--orange {
+    padding: 14px 32px; font-size: 16px;
+  }
+
+  /* Архив */
+  .archive-item {
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 12px;
+    cursor: pointer;
+    transition: transform .1s, box-shadow .15s;
+  }
+  .archive-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+  }
+  .archive-item__date {
+    font-family: var(--font-head);
+    font-size: 16px; font-weight: 700;
+    color: var(--emerald);
+  }
+  .archive-item__meta {
+    font-size: 13px; color: var(--muted);
+  }
+  .archive-item__sum {
+    font-family: var(--font-head);
+    font-size: 20px; font-weight: 700;
+    color: var(--orange);
+    white-space: nowrap;
+  }
+  .archive-detail {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: var(--shadow);
+  }
+  .archive-detail h3 {
+    font-family: var(--font-head);
+    color: var(--emerald);
+    margin-bottom: 12px;
+  }
+  .order-line {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 14px;
+  }
+  .order-line:last-child { border-bottom: none; }
+  .order-line__head {
+    display: flex; justify-content: space-between;
+    gap: 8px; font-weight: 600; color: var(--emerald);
+  }
+  .order-line__items {
+    padding-left: 14px; color: var(--muted);
+    font-size: 13px; margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-card__logo">Ас-Алан<span>.</span></div>
+    <div class="login-card__role">Админ-панель</div>
+    <input type="password" class="login-card__pin" id="pin" inputmode="numeric" maxlength="4" placeholder="····">
+    <div class="login-card__error" id="loginError"></div>
+    <button class="btn btn--primary btn--block" id="loginBtn">Войти</button>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div class="app-logo">Ас-Алан<span>.</span><small>Админ</small></div>
+      <a href="#" class="btn btn--ghost" onclick="logout(event)">Выйти</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="admin-tabs">
+      <button data-tab="halls" class="active">Залы</button>
+      <button data-tab="tables">Столы и QR</button>
+      <button data-tab="categories">Категории</button>
+      <button data-tab="dishes">Блюда</button>
+      <button data-tab="reports">Отчёты</button>
+      <button data-tab="archive">Архив</button>
+    </div>
+
+    <section class="card" id="tab-halls">
+      <h2 class="card__title">Залы</h2>
+      <div class="form-row">
+        <input id="hallName" placeholder="Название зала">
+        <button class="btn btn--primary" onclick="addHall()">Добавить</button>
+      </div>
+      <ul class="list-plain" id="hallsList"></ul>
+    </section>
+
+    <section class="card hide" id="tab-tables">
+      <h2 class="card__title">Столы и QR</h2>
+      <div class="form-row">
+        <select id="hallSel"></select>
+        <input id="tableNum" type="number" placeholder="Номер стола">
+        <button class="btn btn--primary" onclick="addTable()">Добавить</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Зал</th><th>Стол</th><th>QR</th></tr></thead>
+        <tbody id="tablesBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card hide" id="tab-categories">
+      <h2 class="card__title">Категории</h2>
+      <div class="form-row">
+        <input id="catName" placeholder="Название категории">
+        <button class="btn btn--primary" onclick="addCat()">Добавить</button>
+      </div>
+      <ul class="list-plain" id="catsList"></ul>
+    </section>
+
+    <section class="card hide" id="tab-dishes">
+      <h2 class="card__title">Блюда</h2>
+      <div class="form-row">
+        <select id="catSel"></select>
+        <input id="dishName" placeholder="Название">
+        <input id="dishPrice" type="number" placeholder="Цена">
+        <input id="dishDesc" placeholder="Описание">
+        <button class="btn btn--primary" onclick="addDish()">Добавить</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Блюдо</th><th>Цена</th><th>Доступно</th></tr></thead>
+        <tbody id="dishesBody"></tbody>
+      </table>
+    </section>
+
+    <section class="hide" id="tab-reports">
+      <div class="report-stats" id="reportStats">
+        <div class="stat-card">
+          <div class="stat-card__label">Смена</div>
+          <div class="stat-card__value" id="shiftId">—</div>
+          <div class="stat-card__sub" id="shiftOpenedAt">—</div>
+        </div>
+        <div class="stat-card stat-card--accent">
+          <div class="stat-card__label">Выручка за смену</div>
+          <div class="stat-card__value" id="shiftTotal">0</div>
+          <div class="stat-card__sub" id="shiftTotalSub">₽</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Заказов</div>
+          <div class="stat-card__value" id="shiftOrders">0</div>
+          <div class="stat-card__sub">за смену</div>
+        </div>
+      </div>
+
+      <div class="close-shift-card">
+        <h3>Закрыть смену</h3>
+        <p>Все текущие заказы сохранятся в архиве. Следующая смена начнётся с заказа №1.</p>
+        <button class="btn btn--orange" onclick="closeShift()">Закрыть смену</button>
+      </div>
+    </section>
+
+    <section class="hide" id="tab-archive">
+      <h2 class="card__title" style="margin-bottom:16px">Архив смен</h2>
+      <div id="archiveList"></div>
+      <div id="archiveDetail"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const PIN_KEY = 'admin_pin';
+
+function logout(e) {
+  e.preventDefault();
+  localStorage.removeItem(PIN_KEY);
+  location.reload();
+}
+
+async function doLogin() {
+  const pin = document.getElementById('pin').value;
+  const err = document.getElementById('loginError');
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({role:'admin', pin})
+    });
+    if (r.ok) { localStorage.setItem(PIN_KEY, pin); start(); }
+    else err.textContent = 'Неверный PIN';
+  } catch { err.textContent = 'Ошибка сети'; }
+}
+
+async function start() {
+  document.getElementById('loginScreen').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+
+  document.querySelectorAll('.admin-tabs button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.admin-tabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const tabs = ['halls','tables','categories','dishes','reports','archive'];
+      tabs.forEach(t => document.getElementById('tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
+      if (b.dataset.tab === 'reports') loadReports();
+      if (b.dataset.tab === 'archive') loadArchive();
+    };
+  });
+
+  await refresh();
+  connectWs();
+}
+
+async function j(url, opts) { return (await fetch(url, opts)).json(); }
+
+async function refresh() {
+  const [halls, tables, cats, dishes] = await Promise.all([
+    j('/api/halls'), j('/api/tables'), j('/api/categories'), j('/api/dishes/all')
+  ]);
+
+  document.getElementById('hallsList').innerHTML = halls.map(h=>`<li>${h.name}</li>`).join('');
+  document.getElementById('hallSel').innerHTML = halls.map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
+  document.getElementById('catSel').innerHTML = cats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('catsList').innerHTML = cats.map(c=>`<li>${c.name}</li>`).join('');
+
+  const tb = document.getElementById('tablesBody');
+  tb.innerHTML = '';
+  for (const t of tables) {
+    const hall = halls.find(h=>h.id===t.hall_id);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${hall?.name||'—'}</td><td><strong>${t.number}</strong></td><td><img src="/api/qr/${t.id}" alt="QR"></td>`;
+    tb.appendChild(tr);
+  }
+
+  const db = document.getElementById('dishesBody');
+  db.innerHTML = '';
+  for (const d of dishes) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.name}</td>
+      <td><input type="number" value="${d.price}" onchange="setPrice(${d.id}, this.value)"></td>
+      <td><input type="checkbox" ${d.available?'checked':''} onchange="toggleDish(${d.id}, this.checked)"></td>`;
+    db.appendChild(tr);
+  }
+}
+
+async function addHall() {
+  const name = document.getElementById('hallName').value;
+  if (!name) return;
+  await j('/api/halls', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+  document.getElementById('hallName').value = '';
+  refresh();
+}
+async function addTable() {
+  const hall_id = Number(document.getElementById('hallSel').value);
+  const number = Number(document.getElementById('tableNum').value);
+  if (!hall_id || !number) return;
+  await j('/api/tables', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hall_id, number}) });
+  document.getElementById('tableNum').value = '';
+  refresh();
+}
+async function addCat() {
+  const name = document.getElementById('catName').value;
+  if (!name) return;
+  await j('/api/categories', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+  document.getElementById('catName').value = '';
+  refresh();
+}
+async function addDish() {
+  const category_id = Number(document.getElementById('catSel').value);
+  const name = document.getElementById('dishName').value;
+  const price = Number(document.getElementById('dishPrice').value);
+  const description = document.getElementById('dishDesc').value;
+  if (!category_id || !name || !price) return;
+  await j('/api/dishes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({category_id,name,price,description}) });
+  document.getElementById('dishName').value = '';
+  document.getElementById('dishPrice').value = '';
+  document.getElementById('dishDesc').value = '';
+  refresh();
+}
+async function toggleDish(id, available) {
+  await j('/api/dishes/'+id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({available}) });
+}
+async function setPrice(id, price) {
+  await fetch('/api/dishes/' + id, {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ price: Number(price), available: Number(price) > 0 })
+  });
+}
+
+// ---------- ОТЧЁТЫ ----------
+async function loadReports() {
+  const s = await j('/api/shifts/current');
+  document.getElementById('shiftId').textContent = '#' + s.id;
+  document.getElementById('shiftOpenedAt').textContent =
+    'открыта ' + new Date(s.opened_at + 'Z').toLocaleString('ru-RU');
+  document.getElementById('shiftTotal').textContent = Math.round(s.total_sum);
+  document.getElementById('shiftOrders').textContent = s.orders_count;
+}
+
+async function closeShift() {
+  if (!confirm('Закрыть смену? Текущие заказы уйдут в архив, новая смена начнётся с №1.')) return;
+  const r = await fetch('/api/shifts/close', { method: 'POST' });
+  const data = await r.json();
+  if (data.closedShift) {
+    alert('Смена #' + data.closedShift.id + ' закрыта. Открыта новая смена #' + data.newShiftId + '.');
+    loadReports();
+  } else {
+    alert('Ошибка: ' + (data.error || 'неизвестно'));
+  }
+}
+
+// ---------- АРХИВ ----------
+async function loadArchive() {
+  const list = await j('/api/shifts/archive');
+  const el = document.getElementById('archiveList');
+  document.getElementById('archiveDetail').innerHTML = '';
+  if (!list.length) {
+    el.innerHTML = '<p class="muted">Архив пуст</p>';
+    return;
+  }
+  el.innerHTML = '';
+  for (const s of list) {
+    const item = document.createElement('div');
+    item.className = 'archive-item';
+    item.onclick = () => showArchiveDetail(s.id);
+    item.innerHTML = `
+      <div>
+        <div class="archive-item__date">Смена #${s.id} · ${new Date(s.closed_at + 'Z').toLocaleString('ru-RU')}</div>
+        <div class="archive-item__meta">${s.orders_count} заказов · открыта ${new Date(s.opened_at + 'Z').toLocaleString('ru-RU')}</div>
+      </div>
+      <div class="archive-item__sum">${Math.round(s.total_sum)} ₽</div>
+    `;
+    el.appendChild(item);
+  }
+}
+
+async function showArchiveDetail(shiftId) {
+  const orders = await j('/api/shifts/' + shiftId + '/orders');
+  const wrap = document.getElementById('archiveDetail');
+  if (!orders.length) {
+    wrap.innerHTML = '<div class="archive-detail"><p class="muted">В этой смене не было заказов</p></div>';
+    return;
+  }
+  let total = 0;
+  const html = orders.map(o => {
+    const orderSum = o.items.reduce((s,i) => s + i.price * i.qty, 0);
+    total += orderSum;
+    return `
+      <div class="order-line">
+        <div class="order-line__head">
+          <span>№${o.order_no ?? o.id} · Стол ${o.table_number}</span>
+          <span>${orderSum} ₽</span>
+        </div>
+        <div class="order-line__items">
+          ${o.items.map(i => `${i.name} × ${i.qty}`).join(', ')}
+        </div>
+      </div>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="archive-detail">
+      <h3>Смена #${shiftId} · ${orders.length} заказов · итого ${total} ₽</h3>
+      ${html}
+    </div>`;
+}
+
+function connectWs() {
+  const ws = new WebSocket(`ws://${location.host}`);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'order_new' || msg.type === 'order_updated') {
+      if (!document.getElementById('tab-reports').classList.contains('hide')) loadReports();
+    }
+  };
+  ws.onclose = () => setTimeout(connectWs, 2000);
+}
+
+document.getElementById('loginBtn').onclick = doLogin;
+document.getElementById('pin').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+
+const saved = localStorage.getItem(PIN_KEY);
+if (saved) {
+  fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({role:'admin', pin:saved}) })
+    .then(r => r.ok ? start() : localStorage.removeItem(PIN_KEY));
+}
+</script>
+</body>
+</html>
